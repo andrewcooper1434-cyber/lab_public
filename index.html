@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Human Engineering Into The Unknown</title>
+    <link
+      rel="icon"
+      href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%2301040a"/><circle cx="44" cy="18" r="12" fill="%239ed8ff" opacity=".55"/><path d="M14 43l31-17-17 31-4-12z" fill="%23dbe2e5"/></svg>'
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="cosmos" aria-label="A tiny spacecraft traveling into a vast galaxy">
+      <div class="layer backdrop" data-depth="0.02" aria-hidden="true"></div>
+      <div class="layer stars stars-far" data-depth="0.04" aria-hidden="true"></div>
+      <div class="layer stars stars-near" data-depth="0.09" aria-hidden="true"></div>
+      <div class="layer galaxy-glow" data-depth="0.14" aria-hidden="true"></div>
+      <div class="layer nebula" data-depth="0.2" aria-hidden="true"></div>
+      <div class="layer celestial" data-depth="0.27" aria-hidden="true">
+        <div class="planet-shadow"></div>
+      </div>
+
+      <section class="mission-copy" data-depth="0.08">
+        <p class="eyebrow">INTERSTELLAR OBSERVATION / CIVILIAN SCIENCE RELAY</p>
+        <h1>HUMAN ENGINEERING<br />INTO THE UNKNOWN</h1>
+        <p class="quiet-line">
+          We built machines. Then sent them into a universe that does not know we exist.
+        </p>
+      </section>
+
+      <section class="telemetry" aria-label="Mission telemetry" data-depth="0.18">
+        <div>
+          <span>MISSION TIME</span>
+          <strong id="mission-time">0000:00:00:00</strong>
+        </div>
+        <div>
+          <span>RELATIVE VELOCITY</span>
+          <strong id="velocity">17.42 KM/S</strong>
+        </div>
+        <div>
+          <span>VECTOR</span>
+          <strong id="vector">RA +42.116 / DEC -09.882</strong>
+        </div>
+        <div>
+          <span>SIGNAL DELAY</span>
+          <strong id="delay">11H 31M</strong>
+        </div>
+      </section>
+
+      <figure class="spacecraft" data-depth="0.42" tabindex="0" aria-label="Tiny engineered spacecraft">
+        <div class="craft-trajectory"></div>
+        <div class="craft-body">
+          <span class="nose"></span>
+          <span class="bus"></span>
+          <span class="spine"></span>
+          <span class="instrument instrument-a"></span>
+          <span class="instrument instrument-b"></span>
+          <span class="dish"></span>
+          <span class="boom boom-a"></span>
+          <span class="boom boom-b"></span>
+          <span class="radiator radiator-a"></span>
+          <span class="radiator radiator-b"></span>
+          <span class="nav-light nav-blue"></span>
+          <span class="nav-light nav-red"></span>
+          <span class="engine"></span>
+        </div>
+        <figcaption>
+          <span>SC-17 / HYDROGEN CLOCK LOCKED</span>
+          <strong>Telemetry carrier stable</strong>
+        </figcaption>
+      </figure>
+
+      <div class="scale-readout" aria-hidden="true">
+        <span>1 px craft body ~= 31,000 km projected field</span>
+      </div>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
