@@ -352,7 +352,8 @@ p{max-width:68ch}
 <div id="tip" role="tooltip"></div>
 <div id="lightbox" hidden role="dialog" aria-modal="true"><button type="button">关闭 · Close</button><img alt=""><p></p></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="three.min.js"></script>
+<script>window.THREE||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>')</script>
 <script>
 (function(){
 "use strict";
@@ -378,8 +379,16 @@ const caps=[...document.querySelectorAll('.cap')];
 const railItems=[...document.querySelectorAll('.rail div')];
 const hint=document.getElementById('hint');
 const handoff=document.getElementById('handoff');
-const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DIAG={three:!!window.THREE,webgl:'-',renderer:'-',shader:'ok',lost:false,reduce:false,fps:0,fallback:''};
+let reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+DIAG.reduce=reduce;
+caps.forEach(c=>{c.dataset.from0=c.dataset.from;});
 if(reduce){ intro.style.height='100vh'; caps.forEach(c=>{c.dataset.from=c===caps[0]?'0':'9';}); }
+function enableMotion(){ if(!reduce) return; reduce=false; intro.style.height=''; caps.forEach(c=>{c.dataset.from=c.dataset.from0;}); if(window.__avl) window.__avl.setP(0); scrollTo(0,intro.offsetTop); }
+function showFallback(why){ DIAG.fallback=why; const fb=document.getElementById('fallback'); if(fb) fb.hidden=false; const cv=document.getElementById('gl'); if(cv) cv.hidden=true; }
+(function(){ if(location.hash!=='#diag') return; const d=document.createElement('pre'); d.id='diag';
+  d.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99;margin:0;padding:8px 10px;font:11px/1.45 ui-monospace,Menlo,monospace;color:#cfe;background:rgba(0,0,0,.78);border-radius:8px;white-space:pre-wrap;max-width:92vw;pointer-events:none';
+  document.body.appendChild(d); setInterval(()=>{ d.textContent='THREE loaded: '+DIAG.three+'\nWebGL: '+DIAG.webgl+'\nRenderer: '+DIAG.renderer+'\nShaders: '+DIAG.shader+'\nContext lost: '+DIAG.lost+'\nReduced motion: '+DIAG.reduce+'\nFallback: '+(DIAG.fallback||'no')+'\nFPS: '+DIAG.fps+'\nUA: '+navigator.userAgent; },500); })();
 
 function targetProgress(){
   const span = intro.offsetHeight - innerHeight;
@@ -397,7 +406,7 @@ function updateOverlay(p){
 let auto=null;
 function stopAuto(){ if(auto){ cancelAnimationFrame(auto.raf); auto=null; } }
 document.getElementById('play').onclick=()=>{
-  stopAuto();
+  stopAuto(); enableMotion();
   const end = intro.offsetTop + intro.offsetHeight - innerHeight;
   const start = targetProgress()>0.98 ? intro.offsetTop : scrollY;
   if(start!==scrollY) scrollTo(0,start);
@@ -412,8 +421,9 @@ document.getElementById('skip').onclick=()=>{ stopAuto(); if(location.hash==='#m
 /* ---------------- WebGL availability ---------------- */
 const canvas=document.getElementById('gl');
 let glOK=false;
-try{ const tc=document.createElement('canvas'); glOK = !!(window.THREE && (tc.getContext('webgl2')||tc.getContext('webgl'))); }catch(e){ glOK=false; }
+try{ const tc=document.createElement('canvas'); const g2=tc.getContext('webgl2'); const g1=g2?null:(tc.getContext('webgl')||tc.getContext('experimental-webgl')); DIAG.webgl=g2?'webgl2':(g1?'webgl1':'none'); glOK = !!(window.THREE && (g2||g1)); }catch(e){ glOK=false; DIAG.webgl='error: '+e.message; }
 if(!glOK){
+  DIAG.fallback=!window.THREE?'three.js not loaded':'no WebGL';
   document.getElementById('fallback').hidden=false;
   canvas.hidden=true;
   const loop=()=>{ updateOverlay(targetProgress()); requestAnimationFrame(loop); }; loop();
@@ -478,7 +488,7 @@ function pointsMat(maxPx,twinkle){
 }
 
 /* ---------------- renderer / scenes ---------------- */
-let renderer;try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});}catch(e){document.getElementById('fallback').hidden=false;canvas.hidden=true;const loop=()=>{updateOverlay(targetProgress());requestAnimationFrame(loop);};loop();return;}
+let renderer;try{renderer=new THREE.WebGLRenderer({canvas,antialias:!small,powerPreference:'high-performance'});DIAG.renderer='ok';}catch(e){DIAG.renderer='failed: '+e.message;DIAG.fallback='renderer failed';document.getElementById('fallback').hidden=false;canvas.hidden=true;const loop=()=>{updateOverlay(targetProgress());requestAnimationFrame(loop);};loop();return;}
 renderer.setClearColor(0x02040a,1);
 renderer.autoClear=false;
 const scene=new THREE.Scene();
@@ -494,7 +504,7 @@ const starCam=new THREE.PerspectiveCamera(45,1,1,4000);
  const m=pointsMat(3,0.35);m.uniforms.uOpacity.value=0.8;starScene.add(new THREE.Points(b.geo(),m));}
 
 /* planet + atmosphere */
-const planet=new THREE.Mesh(new THREE.SphereGeometry(R,256,256),new THREE.ShaderMaterial({
+const planet=new THREE.Mesh(new THREE.SphereGeometry(R,small?128:256,small?128:256),new THREE.ShaderMaterial({
   vertexShader:`varying vec3 vN;varying vec3 vV;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}`,
   fragmentShader:`varying vec3 vN;varying vec3 vV;void main(){float f=1.0-max(dot(normalize(vV),normalize(vN)),0.0);
     vec3 base=vec3(0.010,0.016,0.032);vec3 rim=vec3(0.16,0.36,0.95);gl_FragColor=vec4(base+rim*pow(f,6.0)*0.85,1.0);}`
@@ -688,8 +698,11 @@ function placeCamera(p,time){
 
 /* ---------------- loop ---------------- */
 let p = reduce ? 1 : targetProgress();
-let last=performance.now();
+let last=performance.now(), dead=false, nFrames=0, fc=0, fpsT=performance.now();
+canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();DIAG.lost=true;dead=true;showFallback('WebGL context lost');},false);
+function checkShaders(){ try{ const bad=(renderer.info.programs||[]).filter(pr=>pr.diagnostics&&pr.diagnostics.runnable===false); if(bad.length){ DIAG.shader='compile failed ('+bad.length+')'; dead=true; showFallback('shader compile failed'); } }catch(e){} }
 function frame(now){
+  if(dead) { updateOverlay(targetProgress()); requestAnimationFrame(frame); return; }
   const dt=Math.min(0.1,(now-last)/1000);last=now;
   const tp = reduce ? (targetProgress()>0.02?1:1) : targetProgress();
   p += (tp-p)*(1-Math.exp(-dt*5));
@@ -699,6 +712,8 @@ function frame(now){
   starScene.children[0].material.uniforms.uTime.value=t;
   placeCamera(p,now);
   renderer.clear();renderer.render(starScene,starCam);renderer.clearDepth();renderer.render(scene,camera);
+  if(++nFrames===2) checkShaders();
+  fc++; if(now-fpsT>1000){ DIAG.fps=Math.round(fc*1000/(now-fpsT)); fc=0; fpsT=now; }
   updateOverlay(reduce?targetProgress():p);
   requestAnimationFrame(frame);
 }
@@ -1389,8 +1404,8 @@ function route(){
   return hsh;
 }
 let first=true;
-function onHash(){const h=route();
-  if(first){first=false;if(h){requestAnimationFrame(()=>app.scrollIntoView({block:'start'}));}return;}
+function onHash(){const h=route();if(h==='diag'&&!first)return;
+  if(first){first=false;if(h&&h!=='diag'){requestAnimationFrame(()=>app.scrollIntoView({block:'start'}));}return;}
   app.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}
 addEventListener('hashchange',onHash);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>route());
